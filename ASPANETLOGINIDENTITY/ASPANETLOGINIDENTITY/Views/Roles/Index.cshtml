@@ -1,0 +1,203 @@
+﻿<h2>Index</h2>
+
+<button class="btn btn-primary" data-toggle="modal" data-target="#myModal" data-placement="left" onclick=ClearScreen();><i class="fa fa-plus" title="Add Role" data-toggle="tooltip"></i> Create New</button>
+<hr />
+<table id="table" class="table table-responsive">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+</table>
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h4 class="modal-title" id="myModalLabel">Role Form</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="roleIdText" class="form-control" placeholder="Id" hidden="true">
+                <div class="form-group">
+                    <label for="Name">Name</label>
+                    <input type="text" id="roleNameText" class="form-control" placeholder="Name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="Save" onclick="Validation();">Save</button>
+                <button type="button" class="btn btn-primary" id="Update" onclick="Validation();">Update</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link href="//cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css" rel="stylesheet" />
+
+@section scripts{
+    <script src="//cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+    <script src="https://kit.fontawesome.com/ced2c3117f.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+    <script>
+        $(document).ready(function () {
+            $("#table").DataTable({
+                "ajax": {
+                    "url": "/Roles/GetDataRoles",
+                    "type": "GET",
+                    "dataType": "json"
+                },
+                "columns": [
+                    { "data": "Id" },
+                    { "data": "Name" },
+                    {
+                        "render": function (data, type, row, meta) {
+                            return '<a onclick=GetById("' + row.Id + '");><i class="fa fa-pencil"></i></a> <a title="Delete" onclick=Delete("' + row.Id + '");><i class="fa fa-trash"></i></a>';
+                        }
+                    }
+                ],
+                "order": [],
+                "columnDefs": [{
+                    "targets": 2,
+                    "orderable": false
+                }]
+            })
+        })
+        function Delete(Id) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.value) {
+                    debugger
+                    $.ajax({
+                        "url": "/Roles/Delete/",
+                        "dataType": "json",
+                        "data": { Id: Id }
+                    }).then((hasil) => {
+                        debugger
+                        if (hasil.data[0] != 0) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Your data has been deleted',
+                                text: 'Deleted!',
+                                onclose: location.reload()
+                            })
+                        }
+                        else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Your data not deleted',
+                                text: 'Failed!'
+                            })
+                        }
+                    })
+                }
+            })
+        }
+        function Edit(Id) {
+            var role = new Object();
+            debugger
+            role.Id = $("#roleIdText").val();
+            debugger
+            role.Name = $("#roleNameText").val();
+            $.ajax({
+                "url": "/Roles/Edit/",
+                "type": "POST",
+                "dataType": "json",
+                "data": { Id: role.Id, Name: role.Name }
+            }).then((result) => {
+                if (result.data[0] != 0) {
+                    $("#myModal").modal("hide");
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Your data has been updated',
+                        text: 'Success!'
+                    });
+                    if (Swal.fire.onclose) {
+                        location.reload()
+                    }
+                }
+                else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Your data not updated',
+                        text: 'Failed!'
+                    })
+                }
+            })
+        }
+        function Save() {
+            var role = new Object();
+            role.Name = $("#roleNameText").val();
+            $.ajax({
+                "url": "/Roles/Create",
+                "type": "POST",
+                "dataType": "json",
+                "data": role
+            }).then((result) => {
+                if (result.data > 0) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Your data has been saved',
+                        text: 'Success!',
+                        onclose: location.reload()
+                    })
+                    $("#myModal").modal("hide");
+                }
+                else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Your data not saved',
+                        text: 'Failed!'
+                    })
+                }
+            })
+        }
+        function GetById(Id) {
+            $.ajax({
+                "url": "/Roles/Details/",
+                "type": "GET",
+                "dataType": "json",
+                "data": { Id: Id }
+            }).then((result) => {
+                if (result.data[0] != null) {
+                    document.getElementById("roleIdText").disabled = true;
+                    $("#roleIdText").val(result.data[0].Id);
+                    $("#roleNameText").val(result.data[0].Name);
+                    $("#myModal").modal("show");
+                    $("#Update").show();
+                    $("#Save").hide();
+                }
+            })
+        }
+        function Validation() {
+            if ($("#roleNameText").val() == "" || $("#roleNameText").val() == " ") {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Please Fill Name'
+                })
+            }
+            else if ($("#roleIdText").val() == "" || $("#roleIdText").val() == " ") {
+                Save();
+            }
+            else {
+                debugger
+                Edit($("#roleIdText").val());
+            }
+        }
+        function ClearScreen() {
+            document.getElementById("roleIdText").disabled = true;
+            $("#roleNameText").val('');
+            $("#Update").hide();
+            $("#Save").show();
+        }
+    </script>
+}
